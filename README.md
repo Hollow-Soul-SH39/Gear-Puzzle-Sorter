@@ -8,6 +8,8 @@ Photos never leave the device. There is no backend, no account, and no secrets.
 
 https://hollow-soul-sh39.github.io/Gear-Puzzle-Sorter/
 
+Published from `main` `/` (static files at the repo root).
+
 ## Run locally
 
 From this folder:
