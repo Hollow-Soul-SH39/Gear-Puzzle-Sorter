@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Gear Puzzle Sorter</title>
+<meta name="description" content="Scan a chip-and-peg sort board, edit what the camera missed, and auto-solve. Runs entirely on your device." />
+<meta name="theme-color" content="#14110d" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Gear Sorter" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<style>
+  :root {
+    --bg: #14110d;
+    --card: #1e1a14;
+    --line: #3a3226;
+    --text: #f3ead8;
+    --muted: #9a8d76;
+    --accent: #d4a017;
+    --ok: #3dbe7a;
+    --btn: #c47a2c;
+    --danger: #b42318;
+    --chip-line: #2a241c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0 auto; padding: 16px 14px 56px;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #2a2116 0%, var(--bg) 55%);
+    color: var(--text); max-width: 640px;
+  }
+  h1 { text-align: center; font-size: 1.4rem; margin: 6px 0 4px; letter-spacing: 0.02em; }
+  .tag { text-align: center; color: var(--muted); font-size: 0.8rem; margin: 0 0 16px; }
+  h2 { font-size: 0.95rem; color: var(--accent); margin: 0 0 10px; }
+  .section {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 14px; margin-bottom: 14px;
+  }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 8px 0; }
+  .btn {
+    appearance: none; border: none; border-radius: 10px;
+    padding: 10px 14px; font-weight: 650; font-size: 0.9rem;
+    background: var(--btn); color: #1a1208; cursor: pointer;
+  }
+  .btn.secondary { background: #2f291f; color: var(--text); }
+  .btn.ok { background: var(--ok); color: #0d1a12; }
+  .btn.danger { background: var(--danger); color: #fff; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  label.btn input { display: none; }
+  .help { font-size: 0.74rem; color: var(--muted); margin-top: 6px; line-height: 1.4; text-align: center; }
+  .status {
+    margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+    background: #120f0b; border: 1px solid var(--line);
+    font-size: 0.82rem; color: #e6dcc8; text-align: center; line-height: 1.4;
+  }
+  .status.error, .scan-error-banner {
+    background: #3a1410; border-color: #e24a3a; color: #ffd4d0; font-weight: 650;
+  }
+  .scan-error-banner {
+    display: none; margin-top: 10px; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid #e24a3a; font-size: 0.88rem; text-align: center; line-height: 1.45;
+  }
+  .scan-error-banner.show { display: block; }
+  .preview-wrap, .camera-box {
+    display: none; margin: 8px auto 0; max-width: 100%;
+    border-radius: 12px; border: 1px solid var(--line); background: #0d0b08; overflow: hidden;
+  }
+  .preview-wrap.show, .camera-box.show { display: block; }
+  .preview-img, #cameraVideo { display: block; width: 100%; height: auto; max-height: 36vh; object-fit: contain; }
+  #board {
+    display: grid; grid-template-columns: repeat(var(--pegs, 4), minmax(44px, 1fr));
+    gap: 10px; align-items: end; margin: 10px 0 6px; min-height: 120px;
+  }
+  .peg {
+    background: #16130f; border: 1px solid var(--line); border-radius: 12px;
+    padding: 8px 6px 6px; text-align: center;
+  }
+  .peg.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .slots { display: flex; flex-direction: column; gap: 6px; }
+  .slot {
+    width: 100%; aspect-ratio: 1; border-radius: 50%;
+    border: 2px solid #4a3f30; background: #241f18; padding: 0; cursor: pointer;
+  }
+  .slot.chip { border-color: var(--chip-line); box-shadow: inset 0 -6px 10px rgba(0,0,0,.25); }
+  .slot.empty { background: repeating-linear-gradient(45deg, #1b1712, #1b1712 4px, #221c16 4px, #221c16 8px); }
+  .slot.picked { outline: 2px solid #fff4c8; }
+  .post {
+    height: 10px; margin: 8px 10% 0; border-radius: 999px;
+    background: linear-gradient(90deg, #6b5428, #d4a017, #6b5428);
+  }
+  .peg-label { display: block; margin-top: 6px; font-size: 0.68rem; color: var(--muted); }
+  .swatch-row { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin: 8px 0; }
+  .swatch {
+    width: 30px; height: 30px; border-radius: 50%; border: 2px solid #5a4c36;
+    padding: 0; cursor: pointer; appearance: none;
+  }
+  .swatch.on { box-shadow: 0 0 0 2px #fff; }
+  #solutionSection { display: none; }
+  #solutionSection.visible { display: block; }
+  #moveLabel { text-align: center; font-size: 0.9rem; margin: 4px 0 8px; color: #f0e2b8; }
+  footer.legal { margin: 8px 4px 0; text-align: center; color: var(--muted); font-size: 0.7rem; line-height: 1.5; }
+  footer.legal a { color: #c9b48a; }
+</style>
+</head>
+<body>
+  <h1>Gear Puzzle Sorter</h1>
+  <p class="tag">Photo or camera → any-color, any-grid board · fail-closed if unreadable</p>
+
+  <div class="section">
+    <h2>1. Scan the board</h2>
+    <div id="previewWrap" class="preview-wrap">
+      <img id="previewImg" class="preview-img" alt="Board photo preview">
+    </div>
+    <div id="cameraBox" class="camera-box">
+      <video id="cameraVideo" autoplay playsinline></video>
+      <div class="controls">
+        <button type="button" class="btn ok" id="captureBtn">Capture</button>
+        <button type="button" class="btn secondary" id="closeCamBtn">Close camera</button>
+      </div>
+    </div>
+    <div class="controls">
+      <label class="btn secondary">Photo<input type="file" id="fileInput" accept="image/*"></label>
+      <button type="button" class="btn secondary" id="cameraBtn">Camera</button>
+      <button type="button" class="btn" id="sampleBtn">Load sample</button>
+      <button type="button" class="btn secondary" id="newBoardBtn">Blank board</button>
+    </div>
+    <p class="help">Use a clear, top-down photo of the full chip grid. If the read is weak, you get an error — the app will not invent a board.</p>
+    <div id="scanError" class="scan-error-banner" role="alert"></div>
+  </div>
+
+  <div class="section">
+    <h2>2. Chip / peg editor</h2>
+    <p class="help" id="boardMeta">No board yet</p>
+    <div id="board" aria-label="Peg board"></div>
+    <div class="swatch-row" id="swatchRow"></div>
+    <div class="controls">
+      <button type="button" class="btn" id="paintBtn">Paint chip</button>
+      <button type="button" class="btn danger" id="deleteChipBtn" disabled>Delete chip</button>
+      <button type="button" class="btn secondary" id="addPegBtn">Add peg</button>
+      <button type="button" class="btn secondary" id="removePegBtn" disabled>Remove peg</button>
+      <button type="button" class="btn secondary" id="tallerBtn">Taller</button>
+      <button type="button" class="btn secondary" id="shorterBtn">Shorter</button>
+    </div>
+    <div class="controls">
+      <button type="button" class="btn ok" id="solveBtn" disabled>Solve</button>
+    </div>
+    <div class="status" id="status">Upload a photo or use the camera.</div>
+  </div>
+
+  <div class="section" id="solutionSection">
+    <h2>3. Play the sort</h2>
+    <div id="moveLabel"></div>
+    <div class="controls">
+      <button type="button" class="btn ok" id="playBtn" disabled>Play</button>
+      <button type="button" class="btn" id="stepBtn" disabled>Step</button>
+      <button type="button" class="btn secondary" id="resetBtn" disabled>Reset</button>
+    </div>
+    <p class="help">Each step pours the top run of matching chips onto another peg. Reset returns to the scanned or edited start.</p>
+  </div>
+
+  <footer class="legal">
+    <p>Runs entirely on your device. Photos are never uploaded.</p>
+    <p><a href="https://github.com/Hollow-Soul-SH39/Gear-Puzzle-Sorter">Source</a>
+      · <a href="https://hollow-soul-sh39.github.io/Gear-Puzzle-Sorter/">GitHub Pages</a></p>
+  </footer>
+
+<script src="color.js"></script>
+<script src="board-gate.js"></script>
+<script src="board-detect.js"></script>
+<script src="solver.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

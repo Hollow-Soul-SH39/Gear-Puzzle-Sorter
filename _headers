@@ -1,0 +1,22 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(self), microphone=(), geolocation=()
+
+/index.html
+  Cache-Control: no-cache
+
+/app.js
+  Cache-Control: no-cache
+
+/board-detect.js
+  Cache-Control: no-cache
+
+/board-gate.js
+  Cache-Control: no-cache
+
+/solver.js
+  Cache-Control: no-cache
+
+/color.js
+  Cache-Control: no-cache

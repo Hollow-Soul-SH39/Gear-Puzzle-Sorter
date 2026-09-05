@@ -1,0 +1,14 @@
+{
+  "name": "Gear Puzzle Sorter",
+  "short_name": "Gear Sorter",
+  "description": "Scan a chip-and-peg sort board, edit, and auto-solve. Runs entirely on your device.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14110d",
+  "theme_color": "#14110d",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

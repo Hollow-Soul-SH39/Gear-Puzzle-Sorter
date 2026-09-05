@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Gear Sorter smoke</title></head>
+<body>
+<pre id="out">running…</pre>
+<script src="../color.js"></script>
+<script src="../board-gate.js"></script>
+<script src="../board-detect.js"></script>
+<script src="../solver.js"></script>
+<script>
+function paintGrid(rows, cols, colors) {
+  const pad = 16, cw = 28;
+  const w = pad * 2 + cols * cw, h = pad * 2 + rows * cw;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#1c1812';
+  ctx.fillRect(0, 0, w, h);
+  for (let r = 0; r < rows; r++) {
+    for (let col = 0; col < cols; col++) {
+      const rgb = colors[r][col];
+      if (!rgb) continue;
+      ctx.fillStyle = rgb;
+      ctx.fillRect(pad + col * cw + 2, pad + r * cw + 2, cw - 4, cw - 4);
+    }
+  }
+  return ctx.getImageData(0, 0, w, h);
+}
+
+const lines = [];
+function check(name, cond, extra) {
+  lines.push((cond ? 'PASS' : 'FAIL') + ' ' + name + (extra ? ' ' + extra : ''));
+  return cond;
+}
+
+const R = '#dc2828', B = '#285adc', G = '#28be5a', Y = '#e6c81e';
+const grid = [
+  [R, R, B, B],
+  [B, B, R, R],
+  [G, Y, G, Y],
+  [Y, G, Y, G]
+];
+const det = GearBoardDetect.detectBoard(paintGrid(4, 4, grid));
+check('detect 4x4 ok', det.ok, det.reason || (det.rows + 'x' + det.cols));
+check('detect 4x4 size', det.rows === 4 && det.cols === 4, det.rows + 'x' + det.cols);
+check('detect not junk', !GearBoardGate.isJunkScan(det));
+
+const blankC = document.createElement('canvas');
+blankC.width = 80; blankC.height = 80;
+const bctx = blankC.getContext('2d');
+bctx.fillStyle = '#222';
+bctx.fillRect(0, 0, 80, 80);
+const blank = GearBoardDetect.detectBoard(bctx.getImageData(0, 0, 80, 80));
+check('blank fail-closed', blank.ok === false && blank.pegs == null, blank.reason);
+
+const sample = [
+  ['#e74c3c', '#e74c3c', '#3498db', '#3498db'],
+  ['#3498db', '#3498db', '#e74c3c', '#e74c3c'],
+  ['#2ecc71', '#f1c40f', '#2ecc71', '#f1c40f'],
+  ['#f1c40f', '#2ecc71', '#f1c40f', '#2ecc71'],
+  [],
+  []
+];
+const sol = GearSolver.solve(sample, 4);
+check('sample solves', sol.ok && sol.moves.length > 0, sol.reason || String(sol.moves && sol.moves.length));
+const end = GearSolver.playTo(sample, sol.moves, sol.moves.length);
+check('sample sorted after play', GearSolver.isSolved(end, 4));
+
+const ok = lines.every((l) => l.startsWith('PASS'));
+lines.push(ok ? 'SMOKE PASS' : 'SMOKE FAIL');
+document.getElementById('out').textContent = lines.join('\n');
+</script>
+</body>
+</html>
