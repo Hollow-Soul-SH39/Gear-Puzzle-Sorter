@@ -8,7 +8,9 @@ Photos never leave the device. There is no backend, no account, and no secrets.
 
 https://hollow-soul-sh39.github.io/Gear-Puzzle-Sorter/
 
-Published from `main` `/` (static files at the repo root).
+Static files live at the repo root on `main`. Enable Pages once (repo admin):
+
+**Settings → Pages → Build and deployment → Deploy from a branch → `main` / `/` (root) → Save.**
 
 ## Run locally
 
