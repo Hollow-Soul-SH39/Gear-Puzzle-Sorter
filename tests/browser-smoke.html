@@ -53,6 +53,40 @@ bctx.fillRect(0, 0, 80, 80);
 const blank = GearBoardDetect.detectBoard(bctx.getImageData(0, 0, 80, 80));
 check('blank fail-closed', blank.ok === false && blank.pegs == null, blank.reason);
 
+function paintShelves(pegsTop, pegsBot) {
+  const chip = 16, gap = 64, pitch = 26;
+  const w = 220, h = 340;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#765230';
+  ctx.fillRect(0, 0, w, h);
+  function shelf(pegs, y) {
+    const x0 = Math.round((w - (pegs.length - 1) * pitch) / 2);
+    pegs.forEach((stack, i) => {
+      const cx = x0 + i * pitch;
+      ctx.fillStyle = '#a8aab0';
+      ctx.fillRect(cx - 2, y, 4, chip * 4 + 8);
+      (stack || []).forEach((rgb, r) => {
+        ctx.fillStyle = rgb;
+        ctx.fillRect(cx - chip / 2 + 1, y + r * chip + 1, chip - 2, chip - 2);
+      });
+    });
+  }
+  shelf(pegsTop, 48);
+  shelf(pegsBot, 48 + chip * 4 + gap);
+  return ctx.getImageData(0, 0, w, h);
+}
+const RB = '#285adc', RG = '#28be5a', RY = '#e6c81e', RR = '#dc2828', RP = '#9632be';
+const l32 = paintShelves(
+  [[RB, RG, RB, RR], [RB, RY, RY, RB], [RG, RR, RY, RP]],
+  [[RP, RG, RP, RB], [RP, RR, RR, RY], [], []]
+);
+const det32 = GearBoardDetect.detectBoard(l32);
+check('detect L32 multi-shelf ok', det32.ok, det32.reason || (det32.rows + 'x' + det32.cols + ' chips=' + det32.chipCount));
+check('detect L32 not junk', det32.ok && !GearBoardGate.isJunkScan(det32));
+check('detect L32 has 5+ pegs', det32.pegs && det32.pegs.length >= 5, det32.pegs && String(det32.pegs.length));
+
 const sample = [
   ['#e74c3c', '#e74c3c', '#3498db', '#3498db'],
   ['#3498db', '#3498db', '#e74c3c', '#e74c3c'],
