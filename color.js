@@ -8,7 +8,7 @@
     if (d) {
       if (max === r) h = ((g - b) / d) % 6;
       else if (max === g) h = (b - r) / d + 2;
-      else h = (b - g) / d + 4;
+      else h = (r - g) / d + 4;
       h *= 60;
       if (h < 0) h += 360;
     }

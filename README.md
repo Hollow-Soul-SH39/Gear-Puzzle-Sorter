@@ -24,7 +24,7 @@ Open http://127.0.0.1:8000/
 
 ## What it does
 
-1. **Scan** — Upload a photo or use the camera. Detection is adaptive: any chip colors, any rectangular grid size.
+1. **Scan** — Upload a photo or use the camera. Detection is adaptive: any chip colors, a rectangular grid, or Gear Sort / Labor Day **multi-shelf** pegs (uneven shelves like 3+4).
 2. **Fail closed** — If the photo is blank, noisy, or not a readable grid, you get a clear error. The app does **not** invent a board.
 3. **Edit** — Fix chips and pegs by hand: paint, delete, add/remove pegs, change stack height.
 4. **Solve** — Pours matching top chips between pegs until each color lives on one peg.
