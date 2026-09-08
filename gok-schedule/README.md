@@ -42,8 +42,9 @@ Defaults: **12,000,000** tile resources ÷ **9** marches = **1,333,334** per mar
 1. Open the app (install as PWA on phone if you want).
 2. Tap **Enable notifications**, then **Arm bot**.
 3. Keep the tab/PWA available so countdowns and alerts can fire.
-4. When an alert hits, send/queue the march in Game of Kings and tap **Mark sent**.
-5. Optional: add a Discord/Slack webhook under **Schedule math → Edit**.
+4. If you open mid-cycle, tap **Catch up missed** for past sends, then send the current due march.
+5. When an alert hits, send/queue the march in Game of Kings and tap **Mark sent**.
+6. Optional: add a Discord/Slack webhook under **Schedule math → Edit**.
 
 ## Tests
 
