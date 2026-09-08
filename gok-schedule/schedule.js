@@ -280,15 +280,15 @@ export function buildTimeline(now = new Date(), config = DEFAULTS) {
 /**
  * Find current / next action relative to `now`.
  * `completedIds` is a Set of event ids the user marked sent.
+ *
+ * If several sends are overdue, `due` is the *latest* overdue item so a mid-day
+ * open focuses on the current slot — older ones are listed in `missed`.
  */
 export function resolveAction(now = new Date(), config = DEFAULTS, completedIds = new Set()) {
   const { dayStart, dayEnd, events } = buildTimeline(now, config);
   const pending = events.filter((e) => !completedIds.has(e.id));
 
-  let due = null;
-  let next = null;
   let currentGathering = null;
-
   for (const event of events) {
     if (event.isDayReset) continue;
     if (now >= event.sendAt && now < event.finishAt) {
@@ -297,21 +297,13 @@ export function resolveAction(now = new Date(), config = DEFAULTS, completedIds 
     }
   }
 
-  for (const event of pending) {
-    if (now >= event.sendAt) {
-      // Still "due" until marked complete (or until next event is closer for resets).
-      due = event;
-    } else {
-      next = event;
-      break;
-    }
-  }
+  const overdue = pending.filter((e) => e.sendAt.getTime() <= now.getTime());
+  const upcoming = pending.filter((e) => e.sendAt.getTime() > now.getTime());
 
-  // If multiple overdue, prefer the earliest incomplete.
-  if (due) {
-    const overdue = pending.filter((e) => e.sendAt <= now);
-    if (overdue.length) due = overdue[0];
-  }
+  // Latest overdue is the actionable slot; earlier overdue are "missed".
+  const due = overdue.length ? overdue[overdue.length - 1] : null;
+  const missed = due ? overdue.slice(0, -1) : [];
+  const next = upcoming[0] || null;
 
   const focus = due || next || events[events.length - 1];
   const msUntil = focus ? focus.sendAt.getTime() - now.getTime() : 0;
@@ -323,6 +315,7 @@ export function resolveAction(now = new Date(), config = DEFAULTS, completedIds 
     events,
     due,
     next,
+    missed,
     focus,
     currentGathering,
     status,
@@ -330,6 +323,14 @@ export function resolveAction(now = new Date(), config = DEFAULTS, completedIds 
     completedCount: events.filter((e) => !e.isDayReset && completedIds.has(e.id)).length,
     totalMarches: events.filter((e) => !e.isDayReset).length,
   };
+}
+
+/** Ids for every incomplete event whose send time is already past. */
+export function catchUpIds(now = new Date(), config = DEFAULTS, completedIds = new Set()) {
+  const { events } = buildTimeline(now, config);
+  return events
+    .filter((e) => e.sendAt.getTime() <= now.getTime() && !completedIds.has(e.id))
+    .map((e) => e.id);
 }
 
 /**

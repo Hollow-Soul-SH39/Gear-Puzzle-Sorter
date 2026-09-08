@@ -7,6 +7,7 @@ import {
   buildDaySchedule,
   buildTimeline,
   resolveAction,
+  catchUpIds,
   generateOffsets,
   mergeConfig,
   zonedDateTimeToUtc,
@@ -114,6 +115,34 @@ test("resolveAction marks due when past send and incomplete", () => {
   const action = resolveAction(now, DEFAULTS, new Set());
   assertEqual(action.status, "send_now");
   assertEqual(action.due.march, 1);
+});
+
+test("mid-day overdue focuses latest slot, older are missed", () => {
+  const now = zonedDateTimeToUtc(
+    { year: 2026, month: 3, day: 8, hour: 22, minute: 0, second: 0 },
+    "America/Phoenix"
+  );
+  const action = resolveAction(now, DEFAULTS, new Set());
+  assertEqual(action.status, "send_now");
+  assertEqual(action.due.march, 3); // 9:26 PM is latest overdue at 10:00 PM
+  assertEqual(action.missed.length, 2); // March 1 + 2
+  assertEqual(action.next.march, 4);
+});
+
+test("catchUpIds returns all overdue incomplete events", () => {
+  const dayStart = zonedDateTimeToUtc(
+    { year: 2026, month: 3, day: 8, hour: 17, minute: 0, second: 0 },
+    "America/Phoenix"
+  );
+  const events = buildDaySchedule(dayStart, DEFAULTS);
+  const now = zonedDateTimeToUtc(
+    { year: 2026, month: 3, day: 8, hour: 22, minute: 0, second: 0 },
+    "America/Phoenix"
+  );
+  const ids = catchUpIds(now, DEFAULTS, new Set());
+  assertEqual(ids.length, 3);
+  assertEqual(ids[0], events[0].id);
+  assertEqual(ids[2], events[2].id);
 });
 
 test("completed march advances to next", () => {

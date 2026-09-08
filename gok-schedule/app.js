@@ -2,6 +2,7 @@ import {
   DEFAULTS,
   mergeConfig,
   resolveAction,
+  catchUpIds,
   formatCountdown,
   formatDuration,
   formatTimeShort,
@@ -20,6 +21,7 @@ const els = {
   countdown: document.getElementById("countdown"),
   azClock: document.getElementById("azClock"),
   markSentBtn: document.getElementById("markSentBtn"),
+  catchUpBtn: document.getElementById("catchUpBtn"),
   snoozeBtn: document.getElementById("snoozeBtn"),
   gatheringLabel: document.getElementById("gatheringLabel"),
   progressLabel: document.getElementById("progressLabel"),
@@ -73,7 +75,7 @@ function toast(message) {
   clearTimeout(toast._t);
   toast._t = setTimeout(() => {
     els.toast.hidden = true;
-  }, 2800);
+  }, 3200);
 }
 
 function fmtResources(n) {
@@ -83,7 +85,7 @@ function fmtResources(n) {
 }
 
 function playBeep() {
-  if (!state.config.soundEnabled) return;
+  if (state.config.soundEnabled === false) return;
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
@@ -172,17 +174,18 @@ function syncDayBoundary(action) {
 }
 
 function renderMath() {
-  const load = resourcesPerMarch(state.config.resourcesPerTile, state.config.marchesPerTile);
+  const loadAmt = resourcesPerMarch(state.config.resourcesPerTile, state.config.marchesPerTile);
   els.mathGrid.innerHTML = `
     <div><span>Tile</span><strong>${state.config.resourcesPerTile.toLocaleString()}</strong></div>
     <div><span>Marches</span><strong>${state.config.marchesPerTile}</strong></div>
-    <div><span>Load</span><strong>${load.toLocaleString()}</strong></div>
+    <div><span>Load</span><strong>${loadAmt.toLocaleString()}</strong></div>
     <div><span>Gather</span><strong>${formatDuration(state.config.gatherMinutes)}</strong></div>
   `;
-  els.resourceLabel.textContent = fmtResources(load);
+  els.resourceLabel.textContent = fmtResources(loadAmt);
 }
 
 function renderTimeline(action) {
+  const missedIds = new Set((action.missed || []).map((e) => e.id));
   els.dayLabel.textContent = `${formatDateShort(action.dayStart, state.config.timezone)} → ${formatTimeShort(action.dayEnd, state.config.timezone)}`;
   els.timeline.innerHTML = "";
 
@@ -191,15 +194,18 @@ function renderTimeline(action) {
     const done = state.completed.has(event.id);
     const isDue = action.due && action.due.id === event.id;
     const isNext = action.next && action.next.id === event.id && !action.due;
+    const isMissed = missedIds.has(event.id);
 
     if (done) li.classList.add("is-done");
     if (isDue) li.classList.add("is-due");
     if (isNext) li.classList.add("is-next");
+    if (isMissed) li.classList.add("is-missed");
     if (event.isDayReset) li.classList.add("is-reset");
 
     let stateLabel = "queued";
     if (done) stateLabel = "done";
     else if (isDue) stateLabel = event.isDayReset ? "claim" : "send now";
+    else if (isMissed) stateLabel = "missed";
     else if (isNext) stateLabel = "next";
     else if (event.sendAt > new Date()) stateLabel = "later";
 
@@ -225,18 +231,23 @@ function render() {
   const h12 = parts.hour % 12 || 12;
   els.azClock.textContent = `Arizona · ${h12}:${String(parts.minute).padStart(2, "0")}:${String(parts.second).padStart(2, "0")} ${ampm}`;
 
-  const focus = action.focus;
   const due = action.due;
   els.heroPanel.classList.toggle("is-due", Boolean(due));
+
+  const missedCount = (action.missed || []).length;
+  els.catchUpBtn.hidden = missedCount === 0 && !due;
+  els.catchUpBtn.textContent =
+    missedCount > 0 ? `Catch up ${missedCount + (due ? 1 : 0)} missed` : "Catch up to now";
 
   if (due) {
     els.statusKicker.textContent = due.isDayReset ? "Action required" : "Send now";
     els.focusTitle.textContent = due.title;
     els.focusSub.textContent = due.isDayReset
       ? due.notes
-      : `Cycle ${due.cycle} · ${fmtResources(due.resources)} resources`;
-    els.countdown.textContent = formatCountdown(0);
+      : `Cycle ${due.cycle} · ${fmtResources(due.resources)} resources${missedCount ? ` · ${missedCount} earlier missed` : ""}`;
+    els.countdown.textContent = formatCountdown(Math.max(0, action.msUntil));
     els.markSentBtn.textContent = due.isDayReset ? "Mark claimed" : "Mark sent";
+    els.markSentBtn.disabled = false;
   } else if (action.next) {
     els.statusKicker.textContent = "Next up";
     els.focusTitle.textContent = action.next.title;
@@ -245,11 +256,13 @@ function render() {
       : `Cycle ${action.next.cycle} · arrives ${formatTimeShort(action.next.sendAt, state.config.timezone)}`;
     els.countdown.textContent = formatCountdown(action.msUntil);
     els.markSentBtn.textContent = "Mark sent";
+    els.markSentBtn.disabled = true;
   } else {
     els.statusKicker.textContent = "Pipeline clear";
     els.focusTitle.textContent = "Day complete";
     els.focusSub.textContent = "Waiting for next 5:00 PM reset";
     els.countdown.textContent = formatCountdown(action.dayEnd - now);
+    els.markSentBtn.disabled = true;
   }
 
   if (action.currentGathering && !state.completed.has(action.currentGathering.id)) {
@@ -279,12 +292,28 @@ function render() {
 
 function markFocusComplete() {
   const action = resolveAction(new Date(), state.config, state.completed);
-  const target = action.due || action.focus;
-  if (!target) return;
+  const target = action.due;
+  if (!target) {
+    toast("Nothing due to mark right now");
+    return;
+  }
   state.completed.add(target.id);
   if (state.lastAlertId === target.id) state.lastAlertId = null;
   save();
   toast(target.isDayReset ? "Rewards marked claimed" : `March ${target.march} marked sent`);
+  render();
+}
+
+function catchUpNow() {
+  const ids = catchUpIds(new Date(), state.config, state.completed);
+  if (!ids.length) {
+    toast("Already caught up");
+    return;
+  }
+  for (const id of ids) state.completed.add(id);
+  state.lastAlertId = null;
+  save();
+  toast(`Caught up ${ids.length} send${ids.length === 1 ? "" : "s"}`);
   render();
 }
 
@@ -315,6 +344,7 @@ els.armBtn.addEventListener("click", async () => {
 });
 
 els.markSentBtn.addEventListener("click", markFocusComplete);
+els.catchUpBtn.addEventListener("click", catchUpNow);
 
 els.snoozeBtn.addEventListener("click", () => {
   state.snoozeUntil = Date.now() + 5 * 60_000;
@@ -335,7 +365,11 @@ els.notifyBtn.addEventListener("click", async () => {
 els.testAlertBtn.addEventListener("click", async () => {
   playBeep();
   await notify("March Command test", "Alerts are working. Keep the bot armed for live sends.", "test");
-  toast("Test alert fired");
+  toast(
+    typeof Notification !== "undefined" && Notification.permission === "granted"
+      ? "Test alert fired"
+      : "Sound played — enable notifications for banners"
+  );
 });
 
 els.resetDayBtn.addEventListener("click", () => {

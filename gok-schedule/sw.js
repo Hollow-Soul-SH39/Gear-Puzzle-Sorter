@@ -1,4 +1,4 @@
-const CACHE = "march-command-v1";
+const CACHE = "march-command-v2";
 const ASSETS = [
   "./",
   "./index.html",
