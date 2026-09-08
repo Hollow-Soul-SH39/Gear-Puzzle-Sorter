@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>March Command — Game of Kings</title>
+  <meta name="description" content="Arizona-time march schedule bot for Game of Kings tile farming. Countdowns, alerts, and a 9-march pipeline." />
+  <meta name="theme-color" content="#1a2218" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="March Command" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true"></div>
+
+  <header class="top">
+    <div class="brand-block">
+      <p class="eyebrow">Game of Kings</p>
+      <h1>March Command</h1>
+    </div>
+    <button type="button" id="armBtn" class="arm-btn" aria-pressed="false">
+      <span class="arm-dot"></span>
+      <span class="arm-label">Arm bot</span>
+    </button>
+  </header>
+
+  <main>
+    <section class="hero-panel" aria-live="polite">
+      <p class="hero-kicker" id="statusKicker">Next march</p>
+      <h2 class="hero-title" id="focusTitle">Send March 1</h2>
+      <p class="hero-sub" id="focusSub">Cycle 1 · Arizona time</p>
+      <div class="countdown" id="countdown">--:--:--</div>
+      <p class="hero-clock" id="azClock">—</p>
+      <div class="hero-actions">
+        <button type="button" id="markSentBtn" class="btn primary">Mark sent</button>
+        <button type="button" id="snoozeBtn" class="btn ghost">Snooze 5m</button>
+      </div>
+    </section>
+
+    <section class="strip" id="gatherStrip">
+      <div>
+        <span class="strip-label">Gathering</span>
+        <strong id="gatheringLabel">—</strong>
+      </div>
+      <div>
+        <span class="strip-label">Day progress</span>
+        <strong id="progressLabel">0 / 10</strong>
+      </div>
+      <div>
+        <span class="strip-label">Per march</span>
+        <strong id="resourceLabel">1.333M</strong>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h3>Today’s pipeline</h3>
+        <span class="muted" id="dayLabel">—</span>
+      </div>
+      <ol class="timeline" id="timeline"></ol>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h3>Bot setup</h3>
+        <span class="muted">Alerts only — you send in-game</span>
+      </div>
+      <ul class="tips">
+        <li>Arm the bot, allow notifications, keep this tab (or installed PWA) open.</li>
+        <li>At each alert, queue or send the march in Game of Kings.</li>
+        <li>Tap <em>Mark sent</em> so the pipeline advances cleanly.</li>
+        <li>At 5:00 PM AZ, claim Tier rewards + 12M points, then the day resets.</li>
+      </ul>
+      <div class="controls-row">
+        <button type="button" id="notifyBtn" class="btn secondary">Enable notifications</button>
+        <button type="button" id="testAlertBtn" class="btn ghost">Test alert</button>
+        <button type="button" id="resetDayBtn" class="btn ghost">Reset day marks</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h3>Schedule math</h3>
+        <button type="button" id="toggleSettings" class="btn ghost compact">Edit</button>
+      </div>
+      <div class="math-grid" id="mathGrid">
+        <div><span>Tile</span><strong>12,000,000</strong></div>
+        <div><span>Marches</span><strong>9</strong></div>
+        <div><span>Load</span><strong>1,333,334</strong></div>
+        <div><span>Gather</span><strong>2h 13m</strong></div>
+      </div>
+      <form id="settingsForm" class="settings" hidden>
+        <label>
+          Day start (AZ hour, 0–23)
+          <input type="number" name="dayStartHour" min="0" max="23" value="17" />
+        </label>
+        <label>
+          Gather minutes
+          <input type="number" name="gatherMinutes" min="1" max="600" value="133" />
+        </label>
+        <label>
+          Resources per tile
+          <input type="number" name="resourcesPerTile" min="1" step="1" value="12000000" />
+        </label>
+        <label>
+          Marches per tile
+          <input type="number" name="marchesPerTile" min="1" max="20" value="9" />
+        </label>
+        <label class="check">
+          <input type="checkbox" name="useGeneratedOffsets" />
+          Rebuild offsets from gather time (instead of published table)
+        </label>
+        <label class="check">
+          <input type="checkbox" name="soundEnabled" checked />
+          Play alert sound
+        </label>
+        <label class="check">
+          <input type="checkbox" name="webhookEnabled" />
+          Ping webhook on alert
+        </label>
+        <label>
+          Webhook URL (optional Discord/Slack)
+          <input type="url" name="webhookUrl" placeholder="https://…" />
+        </label>
+        <div class="controls-row">
+          <button type="submit" class="btn primary">Save settings</button>
+          <button type="button" id="restoreDefaults" class="btn ghost">Restore defaults</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Times shown in America/Phoenix. This app does not control the game client.</p>
+  </footer>
+
+  <div id="toast" class="toast" hidden role="status"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
