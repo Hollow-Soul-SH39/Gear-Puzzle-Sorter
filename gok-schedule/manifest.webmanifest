@@ -1,0 +1,14 @@
+{
+  "name": "March Command — Game of Kings",
+  "short_name": "March Command",
+  "description": "Arizona-time march schedule bot for Game of Kings tile farming.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#12160f",
+  "theme_color": "#1a2218",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

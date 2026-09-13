@@ -4,9 +4,15 @@ Static web app that reads a chip-and-peg sort board from a **photo or camera**, 
 
 Photos never leave the device. There is no backend, no account, and no secrets.
 
+## Also in this repo
+
+**[March Command](./gok-schedule/)** — Game of Kings Arizona-time march schedule bot (countdowns, alerts, 9-march tile pipeline). See [`gok-schedule/README.md`](./gok-schedule/README.md).
+
 ## Live site
 
 https://hollow-soul-sh39.github.io/Gear-Puzzle-Sorter/
+
+March Command (Pages): https://hollow-soul-sh39.github.io/Gear-Puzzle-Sorter/gok-schedule/
 
 Static files live at the repo root on `main`. Enable Pages once (repo admin):
 
